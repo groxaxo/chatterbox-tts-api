@@ -31,6 +31,10 @@ class Config:
     DEVICE_OVERRIDE = os.getenv('DEVICE', 'auto')
     MODEL_CACHE_DIR = os.getenv('MODEL_CACHE_DIR', './models')
     
+    # Model optimization settings
+    USE_INT8_QUANTIZATION = os.getenv('USE_INT8_QUANTIZATION', 'false').lower() == 'true'
+    MODEL_DTYPE = os.getenv('MODEL_DTYPE', 'auto')  # auto, float32, float16, bfloat16
+    
     # Voice library settings
     VOICE_LIBRARY_DIR = os.getenv('VOICE_LIBRARY_DIR', './voices')
 
@@ -44,6 +48,10 @@ class Config:
 
     # Multilingual model settings
     USE_MULTILINGUAL_MODEL = os.getenv('USE_MULTILINGUAL_MODEL', 'true').lower() == 'true'
+    
+    # VRAM optimization note:
+    # INT8 quantization reduces VRAM usage by ~50% vs FP16 (from ~0.93GB to ~0.47GB)
+    # This is especially useful for systems with limited VRAM
     
     # Memory management settings
     MEMORY_CLEANUP_INTERVAL = int(os.getenv('MEMORY_CLEANUP_INTERVAL', 5))

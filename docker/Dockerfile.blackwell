@@ -46,14 +46,13 @@ RUN uv pip install torch==2.7.0 torchvision==0.22.0 torchaudio==2.7.0 --index-ur
 # Install base dependencies first
 RUN uv pip install setuptools fastapi uvicorn[standard] python-dotenv python-multipart requests psutil pydub sse-starlette
 
-# Install resemble-perth specifically (required for watermarker)
 # RUN uv pip install resemble-perth
 
 # Install chatterbox-tts using uv
 # RUN uv pip install chatterbox-tts==0.1.4
 
-# Install chatterbox-tts — with the breaking fix (pkuseg package exclusion) 
-RUN uv pip install git+https://github.com/travisvn/chatterbox-multilingual.git@exp
+# Install official chatterbox-tts v0.1.4 with full 23-language support
+RUN pip install --no-cache-dir chatterbox-tts==0.1.4
 
 # Added after the install of chatterboxx-tts to hopefully be able to use 
 RUN uv pip install torch==2.7.0 torchvision==0.22.0 torchaudio==2.7.0 --index-url https://download.pytorch.org/whl/cu128

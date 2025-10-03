@@ -4,6 +4,7 @@ TTS model initialization and management
 
 import os
 import asyncio
+import torch
 from enum import Enum
 from typing import Optional, Dict, Any
 from chatterbox.tts import ChatterboxTTS
@@ -28,6 +29,57 @@ class InitializationState(Enum):
     ERROR = "error"
 
 
+def get_optimal_dtype(device: str):
+    """Determine the optimal data type for the given device"""
+    dtype_setting = Config.MODEL_DTYPE.lower()
+    
+    # If user specified a dtype, use it
+    if dtype_setting == 'float32':
+        return torch.float32
+    elif dtype_setting == 'float16':
+        return torch.float16
+    elif dtype_setting == 'bfloat16':
+        return torch.bfloat16
+    
+    # Auto-detect optimal dtype based on device
+    if dtype_setting == 'auto':
+        if device == 'cuda':
+            # Use float16 for CUDA if available
+            return torch.float16
+        elif device == 'mps':
+            # MPS works best with float32
+            return torch.float32
+        else:
+            # CPU defaults to float32
+            return torch.float32
+    
+    return torch.float32
+
+
+def quantize_model_int8(model):
+    """Apply INT8 dynamic quantization to the model"""
+    print("🔧 Applying INT8 quantization to reduce VRAM usage...")
+    
+    # Get model size before quantization
+    param_size_mb = sum(p.numel() * p.element_size() for p in model.parameters()) / (1024 ** 2)
+    print(f"   Original model size: {param_size_mb:.2f} MB")
+    
+    # Apply dynamic quantization to Linear and LSTM layers
+    # This reduces memory usage and can improve inference speed
+    quantized_model = torch.quantization.quantize_dynamic(
+        model,
+        {torch.nn.Linear, torch.nn.LSTM, torch.nn.GRU},  # Layers to quantize
+        dtype=torch.qint8
+    )
+    
+    # Get model size after quantization
+    param_size_mb_after = sum(p.numel() * p.element_size() for p in quantized_model.parameters() if hasattr(p, 'numel')) / (1024 ** 2)
+    print(f"   Quantized model size: {param_size_mb_after:.2f} MB")
+    print(f"   VRAM savings: {param_size_mb - param_size_mb_after:.2f} MB ({((param_size_mb - param_size_mb_after) / param_size_mb * 100):.1f}%)")
+    
+    return quantized_model
+
+
 async def initialize_model():
     """Initialize the Chatterbox TTS model"""
     global _model, _device, _initialization_state, _initialization_error, _initialization_progress, _is_multilingual, _supported_languages
@@ -48,7 +100,6 @@ async def initialize_model():
         # Ensure model cache directory exists
         os.makedirs(Config.MODEL_CACHE_DIR, exist_ok=True)
         
-        _initialization_progress = "Checking voice sample..."
         # Check voice sample exists
         if not os.path.exists(Config.VOICE_SAMPLE_PATH):
             raise FileNotFoundError(f"Voice sample not found: {Config.VOICE_SAMPLE_PATH}")
@@ -104,6 +155,24 @@ async def initialize_model():
             _is_multilingual = False
             _supported_languages = {"en": "English"}  # Standard model only supports English
             print(f"✓ Standard model initialized (English only)")
+        
+        # Apply INT8 quantization if enabled
+        if Config.USE_INT8_QUANTIZATION:
+            _initialization_progress = "Applying INT8 quantization..."
+            _model = await loop.run_in_executor(
+                None,
+                lambda: quantize_model_int8(_model)
+            )
+            print(f"✓ INT8 quantization applied successfully")
+        
+        # Apply dtype conversion if specified and not using quantization
+        elif Config.MODEL_DTYPE.lower() != 'auto' and not Config.USE_INT8_QUANTIZATION:
+            optimal_dtype = get_optimal_dtype(_device)
+            if optimal_dtype != torch.float32:
+                _initialization_progress = f"Converting model to {optimal_dtype}..."
+                print(f"🔧 Converting model to {optimal_dtype}...")
+                _model = _model.to(dtype=optimal_dtype)
+                print(f"✓ Model converted to {optimal_dtype}")
         
         _initialization_state = InitializationState.READY.value
         _initialization_progress = "Model ready"
@@ -178,5 +247,7 @@ def get_model_info() -> Dict[str, Any]:
         "language_count": len(_supported_languages),
         "device": _device,
         "is_ready": is_ready(),
-        "initialization_state": _initialization_state
+        "initialization_state": _initialization_state,
+        "quantization": "int8" if Config.USE_INT8_QUANTIZATION else "none",
+        "dtype": Config.MODEL_DTYPE
     }

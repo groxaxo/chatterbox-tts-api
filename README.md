@@ -5,13 +5,13 @@
 # Chatterbox TTS API
 
 <p align="center">
-	<a href="https://github.com/travisvn/chatterbox-tts-api">
-		<img src="https://img.shields.io/github/stars/travisvn/chatterbox-tts-api?style=social" alt="GitHub stars"></a>
-	<a href="https://github.com/travisvn/chatterbox-tts-api">
-		<img alt="GitHub forks" src="https://img.shields.io/github/forks/travisvn/chatterbox-tts-api"></a>
-	<a href="https://github.com/travisvn/chatterbox-tts-api/issues">
-	  <img src="https://img.shields.io/github/issues/travisvn/chatterbox-tts-api" alt="GitHub issues"></a>
-	<img src="https://img.shields.io/github/last-commit/travisvn/chatterbox-tts-api?color=red" alt="GitHub last commit">
+	<a href="https://github.com/groxaxo/chatterbox-tts-api">
+		<img src="https://img.shields.io/github/stars/groxaxo/chatterbox-tts-api?style=social" alt="GitHub stars"></a>
+	<a href="https://github.com/groxaxo/chatterbox-tts-api">
+		<img alt="GitHub forks" src="https://img.shields.io/github/forks/groxaxo/chatterbox-tts-api"></a>
+	<a href="https://github.com/groxaxo/chatterbox-tts-api/issues">
+	  <img src="https://img.shields.io/github/issues/groxaxo/chatterbox-tts-api" alt="GitHub issues"></a>
+	<img src="https://img.shields.io/github/last-commit/groxaxo/chatterbox-tts-api?color=red" alt="GitHub last commit">
   <a href="http://chatterboxtts.com/discord">
     <img src="https://img.shields.io/badge/Discord-Voice_AI_%26_TTS_Tools-blue?logo=discord&logoColor=white" alt="Discord">
   </a>
@@ -19,11 +19,41 @@
 
 **FastAPI**-powered REST API for [Chatterbox TTS](https://github.com/resemble-ai/chatterbox), providing OpenAI-compatible text-to-speech endpoints with voice cloning capabilities and additional features on top of the `chatterbox-tts` base package.
 
+---
+
+## 🙏 Credits & Acknowledgments
+
+This project is built upon the excellent work of:
+
+### Original Project
+**[travisvn/chatterbox-tts-api](https://github.com/travisvn/chatterbox-tts-api)** - The original FastAPI wrapper for Chatterbox TTS
+- Created by [@travisvn](https://github.com/travisvn)
+- Licensed under Apache License 2.0
+
+### Chatterbox TTS Model
+**[ResembleAI/chatterbox](https://github.com/resemble-ai/chatterbox)** - The core TTS model
+- Official Chatterbox TTS v0.1.4 with 23-language multilingual support
+- Created by [Resemble AI](https://resemble.ai)
+- Licensed under MIT License
+
+### This Fork (2025 Edition)
+**Enhancements in this version:**
+- ✅ Updated to official Chatterbox TTS v0.1.4
+- ✅ Full 23-language support including Chinese (zh)
+- ✅ INT8 quantization for VRAM optimization (75% reduction)
+- ✅ All Dockerfiles updated to official version
+- ✅ Comprehensive VRAM optimization documentation
+- ✅ Enhanced testing and validation tools
+
+> **Note:** This is a community-maintained fork with optimizations and documentation improvements. All core functionality credit goes to the original creators.
+
+---
+
 ## Features
 
 🚀 **OpenAI-Compatible API** - Drop-in replacement for OpenAI's TTS API  
 ⚡ **FastAPI Performance** - High-performance async API with automatic documentation  
-🌍 **Multilingual Support** - Generate speech in 22 languages with language-aware voice cloning  
+🌍 **Multilingual Support** - Generate speech in 23 languages with language-aware voice cloning  
 🎨 **React Frontend** - Includes an optional, ready-to-use web interface  
 🎭 **Voice Cloning** - Use your own voice samples for personalized speech  
 🎤 **Voice Library Management** - Upload, manage, and use custom voices by name  
@@ -34,19 +64,18 @@
 🎛️ **Parameter Control** - Real-time adjustment of speech characteristics  
 📚 **Auto Documentation** - Interactive API docs at `/docs` and `/redoc`  
 🔧 **Type Safety** - Full Pydantic validation for requests and responses  
-🧠 **Memory Management** - Advanced memory monitoring and automatic cleanup
+🧠 **Memory Management** - Advanced memory monitoring and automatic cleanup  
+🎯 **VRAM Optimization** - INT8 quantization reduces VRAM by up to 75%
 
-> [!IMPORTANT]
-> `resemble-ai/chatterbox` is currently broken for non-CUDA setups (see [chatterbox issues](https://github.com/resemble-ai/chatterbox/issues))
+> [!NOTE]
+> Using official **Chatterbox TTS v0.1.4** with full 23-language multilingual support including Chinese.
 > 
-> Revert to non-multilingual by using the `stable` branch of this repo
->
-> [View more instructions](#issues-with-multilingual)
+> For CUDA compatibility issues, see [troubleshooting](#-troubleshooting) section.
 
 ## ⚡️ Quick Start
 
 ```bash
-git clone https://github.com/travisvn/chatterbox-tts-api
+git clone https://github.com/groxaxo/chatterbox-tts-api
 cd chatterbox-tts-api
 uv sync
 uv run main.py
@@ -61,7 +90,7 @@ uv run main.py
 
 ```bash
 # Clone the repository
-git clone https://github.com/travisvn/chatterbox-tts-api
+git clone https://github.com/groxaxo/chatterbox-tts-api
 cd chatterbox-tts-api
 
 # Install uv if you haven't already
@@ -85,7 +114,7 @@ uv run main.py
 
 ```bash
 # Clone the repository
-git clone https://github.com/travisvn/chatterbox-tts-api
+git clone https://github.com/groxaxo/chatterbox-tts-api
 cd chatterbox-tts-api
 
 # Setup environment — using Python 3.11
@@ -113,7 +142,7 @@ python main.py
 
 ```bash
 # Clone and start with Docker Compose
-git clone https://github.com/travisvn/chatterbox-tts-api
+git clone https://github.com/groxaxo/chatterbox-tts-api
 cd chatterbox-tts-api
 
 # Use Docker-optimized environment variables
@@ -299,11 +328,11 @@ curl http://localhost:4123/languages
 
 ## 🌍 Multilingual Support
 
-Generate speech in **22 languages** with language-aware voice cloning and automatic language detection.
+Generate speech in **23 languages** with language-aware voice cloning and automatic language detection.
 
 ### Supported Languages
 
-Arabic (ar) • Danish (da) • German (de) • Greek (el) • **English (en)** • Spanish (es) • Finnish (fi) • French (fr) • Hebrew (he) • Hindi (hi) • Italian (it) • Japanese (ja) • Korean (ko) • Malay (ms) • Dutch (nl) • Norwegian (no) • Polish (pl) • Portuguese (pt) • Russian (ru) • Swedish (sv) • Swahili (sw) • Turkish (tr)
+Arabic (ar) • Danish (da) • German (de) • Greek (el) • **English (en)** • Spanish (es) • Finnish (fi) • French (fr) • Hebrew (he) • Hindi (hi) • Italian (it) • Japanese (ja) • Korean (ko) • Malay (ms) • Dutch (nl) • Norwegian (no) • Polish (pl) • Portuguese (pt) • Russian (ru) • Swedish (sv) • Swahili (sw) • Turkish (tr) • Chinese (zh)
 
 ### Quick Start
 
@@ -852,6 +881,59 @@ The test script will:
 </details>
 
 <details>
+<summary><strong>🎯 VRAM Optimization</strong></summary>
+
+Reduce VRAM usage by up to 75% with INT8 quantization and precision control.
+
+### Quick Setup
+
+```bash
+# Enable INT8 quantization for ~50% VRAM reduction
+echo "USE_INT8_QUANTIZATION=true" >> .env
+```
+
+### VRAM Usage Comparison
+
+| Configuration | VRAM Usage | Savings |
+|--------------|------------|---------|
+| Float32 (FP32) | ~1.86 GB | - |
+| Float16 (FP16) | ~0.93 GB | 50% |
+| INT8 Quantized | ~0.47 GB | 75% |
+
+### Configuration Options
+
+```env
+# Enable INT8 quantization (recommended for low VRAM)
+USE_INT8_QUANTIZATION=true
+
+# Or choose precision (auto/float32/float16/bfloat16)
+MODEL_DTYPE=auto  # auto = float16 on CUDA, float32 on CPU/MPS
+```
+
+### Optimization Strategies
+
+**Maximum Quality (High VRAM):**
+```env
+USE_INT8_QUANTIZATION=false
+MODEL_DTYPE=float32
+```
+
+**Balanced (Recommended):**
+```env
+USE_INT8_QUANTIZATION=false
+MODEL_DTYPE=auto  # float16 on CUDA
+```
+
+**Minimum VRAM (Best for Limited Resources):**
+```env
+USE_INT8_QUANTIZATION=true
+```
+
+**📚 [Complete VRAM Optimization Guide →](docs/VRAM_OPTIMIZATION.md)**
+
+</details>
+
+<details>
 <summary><strong>🔧 Troubleshooting</strong></summary>
 
 ### Common Issues
@@ -892,7 +974,7 @@ uv run uvicorn app.main:app --host 0.0.0.0 --port 4123
 # With pip
 pip uninstall torch torchvision torchaudio
 pip install torch==2.6.0 torchvision==0.21.0 torchaudio==2.6.0 --index-url https://download.pytorch.org/whl/cu124
-pip install git+https://github.com/travisvn/chatterbox-multilingual.git@exp
+pip install chatterbox-tts==0.1.4
 
 # With uv (handles this automatically)
 uv sync
@@ -1082,15 +1164,25 @@ curl http://localhost:4123/openapi.json
 
 </details>
 
-## Issues with Multilingual?
+## Multilingual Model Information
 
-Fallback to the LKG (last known good) for the pre-multilingual release
+This project uses **official Chatterbox TTS v0.1.4** with full support for **23 languages** including Chinese.
+
+### Language Support
+
+- ✅ All 23 languages fully supported
+- ✅ Chinese (zh) language support included
+- ✅ Official ResembleAI model (no experimental forks)
+
+### Need English-Only Version?
+
+If you prefer the simpler English-only version, use the `stable` branch:
 
 ```bash
 git clone --branch stable https://github.com/travisvn/chatterbox-tts-api
 ```
 
-[View `stable` branch](https://github.com/travisvn/chatterbox-tts-api/tree/stable) to see proper install / troubleshooting documentation
+[View `stable` branch](https://github.com/travisvn/chatterbox-tts-api/tree/stable) for English-only documentation
 
 ## Support
 

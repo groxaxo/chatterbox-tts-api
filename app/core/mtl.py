@@ -1,14 +1,12 @@
 '''
-Multilingual support for the tts model
+Multilingual support for the TTS model
 
-This is a temporary file to support the multilingual model.
-It will be removed when the multilingual model is fully supported.
-
-Currently, the pkuseg package is not compatible, which is required for zh (Chinese). 
-So, the SUPPORTED_LANGUAGES constant is overriden from the chatterbox.mtl_tts module to reflect the languages that are supported.
+Updated to support all 23 languages from the official Chatterbox multilingual model.
+This includes full Chinese (zh) support with the latest version.
 '''
 
-# Supported languages for the multilingual model
+# Supported languages for the multilingual model (23 languages)
+# Updated from official ResembleAI/chatterbox repository
 SUPPORTED_LANGUAGES = {
   "ar": "Arabic",
   "da": "Danish",
@@ -32,5 +30,5 @@ SUPPORTED_LANGUAGES = {
   "sv": "Swedish",
   "sw": "Swahili",
   "tr": "Turkish",
-  # "zh": "Chinese",
+  "zh": "Chinese",  # Now fully supported in official release
 }
