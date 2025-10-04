@@ -19,7 +19,7 @@ export default function TextInput({
   onChange,
   onClear,
   hasText,
-  maxLength = 3000,
+  maxLength = 100000,
   placeholder = "Enter the text you want to convert to speech...",
   isStreamingEnabled = false,
   onToggleStreaming
