@@ -23,6 +23,13 @@ export default function VoiceUploadModal({ open, onOpenChange, onUpload }: Voice
   const [errorMessage, setErrorMessage] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Log when modal opens for debugging
+  React.useEffect(() => {
+    if (open) {
+      console.log('VoiceUploadModal opened');
+    }
+  }, [open]);
+
   const handleClose = useCallback(() => {
     if (uploadState === 'uploading') return; // Prevent closing during upload
 

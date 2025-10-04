@@ -1,7 +1,6 @@
 "use client"
 
 import * as React from "react"
-import useIsMobile from "@/hooks/use-is-mobile"
 import {
   Dialog,
   DialogContent,
@@ -23,6 +22,33 @@ import {
   DrawerClose,
 } from "@/components/ui/drawer"
 
+// Hook to detect mobile - using simpler implementation to avoid potential issues
+const useIsMobileSimple = (): boolean => {
+  const [isMobile, setIsMobile] = React.useState(false);
+
+  React.useEffect(() => {
+    // Check if window is defined (client-side)
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    // Set initial value
+    checkMobile();
+
+    // Add event listener
+    window.addEventListener('resize', checkMobile);
+
+    // Cleanup
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  return isMobile;
+};
+
 // 1. Create a Context to share the `isMobile` state
 interface ModalContextType {
   isMobile: boolean;
@@ -33,7 +59,8 @@ const ModalContext = React.createContext<ModalContextType | undefined>(undefined
 const useModalContext = () => {
   const context = React.useContext(ModalContext);
   if (!context) {
-    throw new Error("useModalContext must be used within a Modal provider");
+    // Return default value instead of throwing to prevent crashes
+    return { isMobile: false };
   }
   return context;
 }
@@ -45,11 +72,9 @@ interface ModalProps {
   onOpenChange?: (open: boolean) => void
 }
 
-// ... other interfaces are fine, we'll just simplify their implementation
-
 // 2. Modify the main Modal component to manage state and provide context
 function Modal({ children, open, onOpenChange }: ModalProps) {
-  const isMobile = useIsMobile();
+  const isMobile = useIsMobileSimple();
   const Component = isMobile ? Drawer : Dialog;
 
   return (
