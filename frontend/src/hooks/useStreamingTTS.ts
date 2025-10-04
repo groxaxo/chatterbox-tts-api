@@ -140,7 +140,21 @@ export function useStreamingTTS({ apiBaseUrl, sessionId }: UseStreamingTTSProps)
 
   // Start SSE streaming
   const startSSEStreaming = useCallback(async (request: TTSRequest) => {
+    console.log('[StreamingTTS] ===== STARTING SSE STREAMING =====');
+    console.log('[StreamingTTS] Request:', {
+      input_length: request.input?.length,
+      voice: request.voice,
+      exaggeration: request.exaggeration,
+      cfg_weight: request.cfg_weight,
+      temperature: request.temperature,
+      streaming_chunk_size: request.streaming_chunk_size,
+      streaming_strategy: request.streaming_strategy,
+      streaming_quality: request.streaming_quality
+    });
+    console.log('[StreamingTTS] API Base URL:', apiBaseUrl);
+    
     try {
+      console.log('[StreamingTTS] Setting state to streaming...');
       setState(prev => ({
         ...prev,
         isStreaming: true,
@@ -150,27 +164,37 @@ export function useStreamingTTS({ apiBaseUrl, sessionId }: UseStreamingTTSProps)
         audioInfo: null,
       }));
 
+      console.log('[StreamingTTS] Creating AbortController');
       abortControllerRef.current = new AbortController();
 
       // Reset audio scheduling
       if (audioContextRef.current) {
+        console.log('[StreamingTTS] Resetting audio context scheduling');
         scheduledTimeRef.current = audioContextRef.current.currentTime;
       }
 
       let localAudioInfo: AudioInfo | null = null;
       const pcmChunks: ArrayBuffer[] = [];
+      console.log('[StreamingTTS] Calling ttsService.generateSpeechSSE...');
 
       for await (const { event, progress } of ttsService.generateSpeechSSE(request)) {
-        if (abortControllerRef.current?.signal.aborted) break;
+        console.log('[StreamingTTS] Received SSE event:', { type: event.type, progress });
+        
+        if (abortControllerRef.current?.signal.aborted) {
+          console.log('[StreamingTTS] Streaming aborted by user');
+          break;
+        }
 
         setState(prev => ({ ...prev, progress }));
 
         if (event.type === 'speech.audio.info') {
+          console.log('[StreamingTTS] Received audio info:', event);
           localAudioInfo = event;
           setState(prev => ({ ...prev, audioInfo: event }));
         }
 
         if (event.type === 'speech.audio.delta' && localAudioInfo) {
+          console.log('[StreamingTTS] Received audio delta, chunk size:', event.audio?.length || 0);
           // Decode base64 raw PCM data
           const audioData = atob(event.audio);
           const bytes = new Uint8Array(audioData.length);
@@ -179,16 +203,20 @@ export function useStreamingTTS({ apiBaseUrl, sessionId }: UseStreamingTTSProps)
           }
           const pcmData = bytes.buffer;
           pcmChunks.push(pcmData);
+          console.log('[StreamingTTS] Total PCM chunks collected:', pcmChunks.length);
 
           // Play each chunk as it arrives for real-time experience
           await playAudioChunk(pcmData, localAudioInfo);
         }
 
         if (event.type === 'speech.audio.done') {
+          console.log('[StreamingTTS] Received audio.done event');
           // Create final downloadable audio
           if (localAudioInfo) {
+            console.log('[StreamingTTS] Creating final audio from', pcmChunks.length, 'chunks');
             const finalBlob = await createFinalAudio(pcmChunks, localAudioInfo);
             const audioUrl = URL.createObjectURL(finalBlob);
+            console.log('[StreamingTTS] Final audio created, URL:', audioUrl);
 
             setState(prev => ({
               ...prev,
@@ -196,21 +224,34 @@ export function useStreamingTTS({ apiBaseUrl, sessionId }: UseStreamingTTSProps)
               audioUrl,
               progress: { ...progress, isComplete: true }
             }));
+            console.log('[StreamingTTS] ===== SSE STREAMING COMPLETED SUCCESSFULLY =====');
           } else {
+            console.error('[StreamingTTS] No audio info received!');
             setState(prev => ({ ...prev, isStreaming: false, error: "Audio info not received" }));
           }
           break;
         }
       }
     } catch (error) {
-      console.error('SSE streaming error:', error);
+      console.error('[StreamingTTS] ===== SSE STREAMING ERROR =====');
+      console.error('[StreamingTTS] Error details:', error);
+      console.error('[StreamingTTS] Error type:', error instanceof Error ? 'Error' : typeof error);
+      console.error('[StreamingTTS] Error message:', error instanceof Error ? error.message : String(error));
+      console.error('[StreamingTTS] Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+      
+      // Check for network errors
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        console.error('[StreamingTTS] NETWORK ERROR: Failed to fetch from server');
+        console.error('[StreamingTTS] Check if backend is running at:', apiBaseUrl);
+      }
+      
       setState(prev => ({
         ...prev,
         isStreaming: false,
-        error: error instanceof Error ? error.message : 'Streaming failed'
+        error: error instanceof Error ? error.message : 'network error'
       }));
     }
-  }, [ttsService, createFinalAudio, playAudioChunk]);
+  }, [ttsService, createFinalAudio, playAudioChunk, apiBaseUrl]);
 
   // Start raw audio streaming
   const startAudioStreaming = useCallback(async (request: TTSRequest) => {

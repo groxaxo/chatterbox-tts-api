@@ -54,10 +54,19 @@ export const createTTSService = (baseUrl: string, sessionId?: string) => ({
 
   // SSE Streaming method
   generateSpeechSSE: async function* (request: TTSRequest): AsyncGenerator<{ event: SSEEvent; progress: StreamingProgress }> {
+    console.log('[TTS Service] ===== generateSpeechSSE CALLED =====');
     const requestData = {
       ...request,
       stream_format: 'sse' as const
     };
+    console.log('[TTS Service] Request data:', {
+      input_length: requestData.input?.length,
+      voice: requestData.voice,
+      stream_format: requestData.stream_format,
+      streaming_chunk_size: requestData.streaming_chunk_size,
+      streaming_strategy: requestData.streaming_strategy
+    });
+    console.log('[TTS Service] Fetching from:', `${baseUrl}/audio/speech`);
 
     const response = await fetch(`${baseUrl}/audio/speech`, {
       method: 'POST',
@@ -67,16 +76,25 @@ export const createTTSService = (baseUrl: string, sessionId?: string) => ({
       },
       body: JSON.stringify(requestData)
     });
+    
+    console.log('[TTS Service] Response status:', response.status);
+    console.log('[TTS Service] Response ok:', response.ok);
+    console.log('[TTS Service] Response headers:', Object.fromEntries(response.headers.entries()));
 
     if (!response.ok) {
       const errorText = await response.text();
+      console.error('[TTS Service] Response not OK!');
+      console.error('[TTS Service] Status:', response.status);
+      console.error('[TTS Service] Error text:', errorText);
       throw new Error(`SSE streaming failed: ${response.status} ${errorText}`);
     }
 
     if (!response.body) {
+      console.error('[TTS Service] Response body is null!');
       throw new Error('Response body is null');
     }
 
+    console.log('[TTS Service] Starting to read response stream...');
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
     let buffer = '';
@@ -89,10 +107,17 @@ export const createTTSService = (baseUrl: string, sessionId?: string) => ({
     };
 
     try {
+      let chunkCount = 0;
       while (true) {
         const { done, value } = await reader.read();
+        chunkCount++;
+        
+        if (chunkCount % 10 === 0) {
+          console.log('[TTS Service] Read', chunkCount, 'chunks so far...');
+        }
 
         if (done) {
+          console.log('[TTS Service] Stream done, total chunks read:', chunkCount);
           progress.isComplete = true;
           break;
         }
@@ -107,6 +132,7 @@ export const createTTSService = (baseUrl: string, sessionId?: string) => ({
 
             try {
               const event: SSEEvent = JSON.parse(eventData);
+              console.log('[TTS Service] Parsed SSE event:', event.type);
 
               if (event.type === 'speech.audio.delta') {
                 // For SSE, we don't create blobs here, just count bytes and chunks.
@@ -114,21 +140,38 @@ export const createTTSService = (baseUrl: string, sessionId?: string) => ({
                 const audioData = atob(event.audio);
                 progress.chunksReceived++;
                 progress.totalBytes += audioData.length;
+                console.log('[TTS Service] Audio delta:', {
+                  chunksReceived: progress.chunksReceived,
+                  totalBytes: progress.totalBytes,
+                  deltaSize: audioData.length
+                });
               }
 
               yield { event, progress: { ...progress } };
 
               if (event.type === 'speech.audio.done') {
+                console.log('[TTS Service] Received speech.audio.done, completing stream');
                 progress.isComplete = true;
                 return;
               }
             } catch (e) {
-              console.warn('Failed to parse SSE event:', eventData);
+              console.error('[TTS Service] Failed to parse SSE event:', eventData);
+              console.error('[TTS Service] Parse error:', e);
             }
           }
         }
       }
+    } catch (error) {
+      console.error('[TTS Service] ===== ERROR IN STREAM READING =====');
+      console.error('[TTS Service] Error:', error);
+      console.error('[TTS Service] Error type:', error instanceof Error ? 'Error' : typeof error);
+      if (error instanceof Error) {
+        console.error('[TTS Service] Error message:', error.message);
+        console.error('[TTS Service] Error stack:', error.stack);
+      }
+      throw error;
     } finally {
+      console.log('[TTS Service] Releasing stream reader lock');
       reader.releaseLock();
     }
   },
