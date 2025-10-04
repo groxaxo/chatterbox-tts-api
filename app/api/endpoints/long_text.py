@@ -72,7 +72,10 @@ async def create_long_text_job(request: LongTextRequest):
             exaggeration=request.exaggeration,
             cfg_weight=request.cfg_weight,
             temperature=request.temperature,
-            session_id=request.session_id
+            session_id=request.session_id,
+            streaming_chunk_size=request.streaming_chunk_size,
+            streaming_strategy=request.streaming_strategy,
+            streaming_quality=request.streaming_quality
         )
 
         # Submit for background processing

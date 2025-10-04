@@ -35,6 +35,11 @@ class LongTextRequest(BaseModel):
     cfg_weight: Optional[float] = Field(None, ge=0.0, le=1.0, description="Pace control")
     temperature: Optional[float] = Field(None, ge=0.05, le=5.0, description="Sampling temperature")
     session_id: Optional[str] = Field(None, description="Frontend session ID for tracking")
+    
+    # Streaming parameters (same as standard streaming)
+    streaming_chunk_size: Optional[int] = Field(None, description="Target chunk size for streaming")
+    streaming_strategy: Optional[str] = Field(None, description="Chunking strategy: sentence, paragraph, word, fixed")
+    streaming_quality: Optional[str] = Field(None, description="Quality preset: fast, balanced, high")
 
     @field_validator('input')
     @classmethod

@@ -165,7 +165,10 @@ class LongTextJobManager:
                    exaggeration: Optional[float] = None,
                    cfg_weight: Optional[float] = None,
                    temperature: Optional[float] = None,
-                   session_id: Optional[str] = None) -> Tuple[str, int]:
+                   session_id: Optional[str] = None,
+                   streaming_chunk_size: Optional[int] = None,
+                   streaming_strategy: Optional[str] = None,
+                   streaming_quality: Optional[str] = None) -> Tuple[str, int]:
         """
         Create a new long text job
 
@@ -203,7 +206,10 @@ class LongTextJobManager:
                 'exaggeration': exaggeration,
                 'cfg_weight': cfg_weight,
                 'temperature': temperature,
-                'output_format': output_format
+                'output_format': output_format,
+                'streaming_chunk_size': streaming_chunk_size,
+                'streaming_strategy': streaming_strategy,
+                'streaming_quality': streaming_quality
             },
             output_format=output_format,
             user_session_id=session_id
@@ -754,7 +760,10 @@ class LongTextJobManager:
             exaggeration=parameters.get('exaggeration'),
             cfg_weight=parameters.get('cfg_weight'),
             temperature=parameters.get('temperature'),
-            session_id=original_metadata.user_session_id
+            session_id=original_metadata.user_session_id,
+            streaming_chunk_size=parameters.get('streaming_chunk_size'),
+            streaming_strategy=parameters.get('streaming_strategy'),
+            streaming_quality=parameters.get('streaming_quality')
         )
 
         # Update metadata to link to original job

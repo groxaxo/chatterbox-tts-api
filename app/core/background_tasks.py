@@ -12,7 +12,7 @@ from typing import Optional, Dict, Any
 
 from app.config import Config
 from app.core.long_text_jobs import get_job_manager
-from app.core.text_processing import split_text_for_long_generation, estimate_processing_time
+from app.core.text_processing import split_text_for_long_generation, estimate_processing_time, split_text_for_streaming, get_streaming_settings
 from app.core.audio_processing import concatenate_audio_files, AudioConcatenationError
 from app.api.endpoints.speech import generate_speech_internal, resolve_voice_path_and_language
 from app.models.long_text import (
@@ -144,10 +144,44 @@ class LongTextProcessor:
             # Phase 1: Text chunking
             await self._update_job_status(job_id, LongTextJobStatus.CHUNKING, "Splitting text into chunks")
 
-            chunks = split_text_for_long_generation(
-                input_text,
-                max_chunk_size=Config.LONG_TEXT_CHUNK_SIZE
-            )
+            # Get streaming parameters from metadata
+            streaming_chunk_size = metadata.parameters.get('streaming_chunk_size')
+            streaming_strategy = metadata.parameters.get('streaming_strategy')
+            streaming_quality = metadata.parameters.get('streaming_quality')
+
+            # Use streaming-optimized chunking (same as standard streaming)
+            if streaming_chunk_size or streaming_strategy or streaming_quality:
+                # Get optimized streaming settings
+                streaming_settings = get_streaming_settings(
+                    streaming_chunk_size, streaming_strategy, streaming_quality
+                )
+                
+                # Split using streaming chunking
+                text_chunks = split_text_for_streaming(
+                    input_text,
+                    chunk_size=streaming_settings["chunk_size"],
+                    strategy=streaming_settings["strategy"],
+                    quality=streaming_settings["quality"]
+                )
+                
+                # Convert to LongTextChunk objects
+                chunks = []
+                for i, text_chunk in enumerate(text_chunks):
+                    chunk = LongTextChunk(
+                        index=i,
+                        text=text_chunk,
+                        text_preview=text_chunk[:50] + ("..." if len(text_chunk) > 50 else ""),
+                        character_count=len(text_chunk)
+                    )
+                    chunks.append(chunk)
+                
+                logger.info(f"Job {job_id}: Using streaming-optimized chunking - {streaming_settings['strategy']} strategy, {streaming_settings['chunk_size']} chars, {streaming_settings['quality']} quality")
+            else:
+                # Fallback to traditional long text chunking
+                chunks = split_text_for_long_generation(
+                    input_text,
+                    max_chunk_size=Config.LONG_TEXT_CHUNK_SIZE
+                )
 
             if not chunks:
                 await self._fail_job(job_id, "Failed to split text into chunks")

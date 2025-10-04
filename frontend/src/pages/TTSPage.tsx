@@ -50,9 +50,15 @@ export default function TTSPage() {
     exaggeration,
     cfgWeight,
     temperature,
+    streamingChunkSize,
+    streamingStrategy,
+    streamingQuality,
     updateExaggeration,
     updateCfgWeight,
     updateTemperature,
+    updateStreamingChunkSize,
+    updateStreamingStrategy,
+    updateStreamingQuality,
     resetToDefaults,
     isDefault
   } = useAdvancedSettings();
@@ -277,7 +283,7 @@ export default function TTSPage() {
         setIsClickedGenerating(false);
       }, 8000);
 
-      // Use long text TTS
+      // Use long text TTS with streaming parameters (same as standard streaming)
       const longTextRequest: LongTextRequest = {
         text,
         voice: selectedVoice?.name,
@@ -286,7 +292,10 @@ export default function TTSPage() {
         temperature,
         language: 'en',
         output_format: 'mp3',
-        session_id: sessionId
+        session_id: sessionId,
+        streaming_chunk_size: streamingChunkSize,
+        streaming_strategy: streamingStrategy,
+        streaming_quality: streamingQuality
       };
 
       if (selectedVoice?.file) {

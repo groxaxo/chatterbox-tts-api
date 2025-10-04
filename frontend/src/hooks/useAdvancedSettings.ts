@@ -6,13 +6,19 @@ const STORAGE_KEY = 'chatterbox-advanced-settings';
 const DEFAULT_SETTINGS = {
   exaggeration: 0.5,
   cfgWeight: 0.5,
-  temperature: 0.8
+  temperature: 0.8,
+  streamingChunkSize: undefined as number | undefined,
+  streamingStrategy: 'sentence' as 'sentence' | 'paragraph' | 'fixed' | 'word',
+  streamingQuality: 'balanced' as 'fast' | 'balanced' | 'high'
 };
 
 interface AdvancedSettings {
   exaggeration: number;
   cfgWeight: number;
   temperature: number;
+  streamingChunkSize?: number;
+  streamingStrategy: 'sentence' | 'paragraph' | 'fixed' | 'word';
+  streamingQuality: 'fast' | 'balanced' | 'high';
 }
 
 export function useAdvancedSettings() {
@@ -27,7 +33,10 @@ export function useAdvancedSettings() {
         return {
           exaggeration: typeof parsed.exaggeration === 'number' ? parsed.exaggeration : DEFAULT_SETTINGS.exaggeration,
           cfgWeight: typeof parsed.cfgWeight === 'number' ? parsed.cfgWeight : DEFAULT_SETTINGS.cfgWeight,
-          temperature: typeof parsed.temperature === 'number' ? parsed.temperature : DEFAULT_SETTINGS.temperature
+          temperature: typeof parsed.temperature === 'number' ? parsed.temperature : DEFAULT_SETTINGS.temperature,
+          streamingChunkSize: typeof parsed.streamingChunkSize === 'number' ? parsed.streamingChunkSize : DEFAULT_SETTINGS.streamingChunkSize,
+          streamingStrategy: parsed.streamingStrategy || DEFAULT_SETTINGS.streamingStrategy,
+          streamingQuality: parsed.streamingQuality || DEFAULT_SETTINGS.streamingQuality
         };
       }
     } catch (error) {
@@ -58,6 +67,18 @@ export function useAdvancedSettings() {
     setSettings(prev => ({ ...prev, temperature: value }));
   }, []);
 
+  const updateStreamingChunkSize = useCallback((value: number | undefined) => {
+    setSettings(prev => ({ ...prev, streamingChunkSize: value }));
+  }, []);
+
+  const updateStreamingStrategy = useCallback((value: 'sentence' | 'paragraph' | 'fixed' | 'word') => {
+    setSettings(prev => ({ ...prev, streamingStrategy: value }));
+  }, []);
+
+  const updateStreamingQuality = useCallback((value: 'fast' | 'balanced' | 'high') => {
+    setSettings(prev => ({ ...prev, streamingQuality: value }));
+  }, []);
+
   const resetToDefaults = useCallback(() => {
     setSettings(DEFAULT_SETTINGS);
   }, []);
@@ -66,7 +87,10 @@ export function useAdvancedSettings() {
     return (
       settings.exaggeration === DEFAULT_SETTINGS.exaggeration &&
       settings.cfgWeight === DEFAULT_SETTINGS.cfgWeight &&
-      settings.temperature === DEFAULT_SETTINGS.temperature
+      settings.temperature === DEFAULT_SETTINGS.temperature &&
+      settings.streamingChunkSize === DEFAULT_SETTINGS.streamingChunkSize &&
+      settings.streamingStrategy === DEFAULT_SETTINGS.streamingStrategy &&
+      settings.streamingQuality === DEFAULT_SETTINGS.streamingQuality
     );
   }, [settings]);
 
@@ -75,11 +99,17 @@ export function useAdvancedSettings() {
     exaggeration: settings.exaggeration,
     cfgWeight: settings.cfgWeight,
     temperature: settings.temperature,
+    streamingChunkSize: settings.streamingChunkSize,
+    streamingStrategy: settings.streamingStrategy,
+    streamingQuality: settings.streamingQuality,
 
     // Update functions
     updateExaggeration,
     updateCfgWeight,
     updateTemperature,
+    updateStreamingChunkSize,
+    updateStreamingStrategy,
+    updateStreamingQuality,
 
     // Utility functions
     resetToDefaults,

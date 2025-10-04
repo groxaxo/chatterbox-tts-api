@@ -47,6 +47,19 @@ export const createLongTextTTSService = (baseUrl: string, sessionId?: string) =>
         payload.response_format = request.output_format; // Backend expects 'response_format'
       }
 
+      // Add streaming parameters (same as standard streaming)
+      if (request.streaming_chunk_size !== undefined) {
+        payload.streaming_chunk_size = request.streaming_chunk_size;
+      }
+
+      if (request.streaming_strategy) {
+        payload.streaming_strategy = request.streaming_strategy;
+      }
+
+      if (request.streaming_quality) {
+        payload.streaming_quality = request.streaming_quality;
+      }
+
       // Add session ID for tracking
       if (sessionId) {
         payload.session_id = sessionId;
@@ -310,7 +323,7 @@ export const createLongTextTTSService = (baseUrl: string, sessionId?: string) =>
      * Check if text should use long text processing
      */
     shouldUseLongText: (text: string): boolean => {
-      return text.length > 3000;
+      return text.length > 999999; // Bypass long text - always use streaming
     },
 
     /**

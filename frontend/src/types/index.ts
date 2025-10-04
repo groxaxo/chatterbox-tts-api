@@ -329,6 +329,10 @@ export interface LongTextRequest {
   output_format?: 'mp3' | 'wav';
   silence_padding_ms?: number;
   session_id?: string;
+  // Streaming parameters (same as standard streaming)
+  streaming_chunk_size?: number;
+  streaming_strategy?: 'sentence' | 'paragraph' | 'fixed' | 'word';
+  streaming_quality?: 'fast' | 'balanced' | 'high';
 }
 
 export interface LongTextSSEEvent {
