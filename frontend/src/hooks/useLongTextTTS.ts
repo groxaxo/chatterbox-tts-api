@@ -51,6 +51,9 @@ export function useLongTextTTS({ apiBaseUrl, sessionId }: UseLongTextTTSProps) {
 
   const sseCleanupRef = useRef<(() => void) | null>(null);
   const service = createLongTextTTSService(apiBaseUrl, sessionId);
+  const audioQueueRef = useRef<HTMLAudioElement | null>(null);
+  const chunkQueueRef = useRef<{index: number, url: string}[]>([]);
+  const isPlayingRef = useRef(false);
 
   // Save tracked job IDs to localStorage
   const updateTrackedJobIds = useCallback((jobIds: string[]) => {
@@ -241,10 +244,48 @@ export function useLongTextTTS({ apiBaseUrl, sessionId }: UseLongTextTTSProps) {
     sseCleanupRef.current = cleanup;
   }, [service]);
 
+  // Play next chunk in queue
+  const playNextChunk = useCallback(() => {
+    if (chunkQueueRef.current.length === 0 || isPlayingRef.current) {
+      return;
+    }
+
+    const nextChunk = chunkQueueRef.current.shift();
+    if (!nextChunk) return;
+
+    console.log(`Playing chunk ${nextChunk.index}`);
+    isPlayingRef.current = true;
+
+    // Create audio element
+    const audio = new Audio(nextChunk.url);
+    audioQueueRef.current = audio;
+
+    audio.onended = () => {
+      console.log(`Chunk ${nextChunk.index} finished playing`);
+      isPlayingRef.current = false;
+      URL.revokeObjectURL(nextChunk.url); // Clean up blob URL
+      playNextChunk(); // Play next chunk in queue
+    };
+
+    audio.onerror = (err) => {
+      console.error(`Error playing chunk ${nextChunk.index}:`, err);
+      isPlayingRef.current = false;
+      URL.revokeObjectURL(nextChunk.url);
+      playNextChunk(); // Try next chunk
+    };
+
+    audio.play().catch(err => {
+      console.error(`Failed to play chunk ${nextChunk.index}:`, err);
+      isPlayingRef.current = false;
+      URL.revokeObjectURL(nextChunk.url);
+      playNextChunk();
+    });
+  }, []);
+
   // Play individual chunk for progressive streaming
   const playChunk = useCallback(async (jobId: string, chunkIndex: number, chunkUrl: string) => {
     try {
-      console.log(`Downloading and playing chunk ${chunkIndex} from ${chunkUrl}`);
+      console.log(`Downloading chunk ${chunkIndex} from ${chunkUrl}`);
       
       // Fetch chunk audio
       const response = await fetch(`${apiBaseUrl}${chunkUrl}`);
@@ -255,21 +296,28 @@ export function useLongTextTTS({ apiBaseUrl, sessionId }: UseLongTextTTSProps) {
       const audioBlob = await response.blob();
       const audioUrl = URL.createObjectURL(audioBlob);
       
-      // Add to streaming chunks array
+      console.log(`Chunk ${chunkIndex} downloaded, adding to queue`);
+      
+      // Add to queue
+      chunkQueueRef.current.push({ index: chunkIndex, url: audioUrl });
+      
+      // Update state
       setState(prev => ({
         ...prev,
         streamingChunks: [...prev.streamingChunks, audioUrl],
-        currentlyPlayingChunk: chunkIndex
+        currentlyPlayingChunk: chunkIndex,
+        isStreaming: true
       }));
       
-      // Auto-play the chunk
-      const audio = new Audio(audioUrl);
-      audio.play().catch(err => console.error(`Failed to play chunk ${chunkIndex}:`, err));
+      // Start playing if not already playing
+      if (!isPlayingRef.current) {
+        playNextChunk();
+      }
       
     } catch (error) {
       console.error(`Failed to play chunk ${chunkIndex}:`, error);
     }
-  }, [apiBaseUrl]);
+  }, [apiBaseUrl, playNextChunk]);
 
   // Download completed audio
   const downloadCompletedAudio = useCallback(async (jobId: string) => {
