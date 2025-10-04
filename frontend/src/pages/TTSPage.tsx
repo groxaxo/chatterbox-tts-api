@@ -31,6 +31,8 @@ import { useStreamingTTS } from '../hooks/useStreamingTTS';
 import { useLongTextTTS } from '../hooks/useLongTextTTS';
 import { useLongTextHistory } from '../hooks/useLongTextHistory';
 import { useHistoryTab } from '../hooks/useHistoryTab';
+import { useProcessingMode } from '../hooks/useProcessingMode';
+import ProcessingModeSelector from '../components/tts/ProcessingModeSelector';
 import type { TTSRequest, LongTextRequest } from '../types';
 
 export default function TTSPage() {
@@ -44,6 +46,9 @@ export default function TTSPage() {
 
   // Text input management with persistence
   const { text, updateText, clearText, hasText } = useTextInput();
+
+  // Processing mode management (auto/streaming/long-text)
+  const { mode: processingMode, setMode: setProcessingMode, shouldUseLongText: shouldUseLongTextManual } = useProcessingMode();
 
   // Advanced settings management with persistence
   const {
@@ -110,7 +115,7 @@ export default function TTSPage() {
     cancelJob,
     refetchJobs,
     estimateProcessingTime,
-    shouldUseLongText,
+    shouldUseLongText: shouldUseLongTextAuto,
     getStatusMessage
   } = useLongTextTTS({
     apiBaseUrl,
@@ -276,8 +281,15 @@ export default function TTSPage() {
 
     setIsClickedGenerating(true);
 
-    // Check if we should use long text processing
-    if (shouldUseLongText(text)) {
+    // Check if we should use long text processing (respects manual mode selection)
+    const useLongTextMode = shouldUseLongTextManual(text);
+    console.log('[TTSPage] Processing mode decision:', {
+      mode: processingMode,
+      textLength: text.length,
+      useLongTextMode
+    });
+
+    if (useLongTextMode) {
 
       setTimeout(() => {
         setIsClickedGenerating(false);
@@ -385,8 +397,8 @@ export default function TTSPage() {
   // Use long text audio URL if available, then streaming, then standard
   const currentAudioUrl = longTextAudioUrl || streamingAudioUrl || audioUrl;
 
-  // Check if current text requires long text processing
-  const isLongText = shouldUseLongText(text);
+  // Check if current text requires long text processing (respects manual mode)
+  const isLongText = shouldUseLongTextManual(text);
   const estimatedTime = isLongText ? estimateProcessingTime(text.length) : null;
 
   return (
@@ -570,6 +582,13 @@ export default function TTSPage() {
                 </button>
               </div>
             )}
+
+            {/* Processing Mode Selector */}
+            <ProcessingModeSelector
+              mode={processingMode}
+              onModeChange={setProcessingMode}
+              textLength={text.length}
+            />
 
             {/* Advanced Settings */}
             <AdvancedSettings
