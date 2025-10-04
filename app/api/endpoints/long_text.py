@@ -624,6 +624,7 @@ async def job_progress_sse(job_id: str):
             last_status = None
             last_progress = None
             last_completed_chunk = -1
+            sent_chunk_indexes = set()  # Track which chunks we've already sent
 
             while True:
                 try:
@@ -635,10 +636,10 @@ async def job_progress_sse(job_id: str):
                     if not metadata or not progress:
                         break
 
-                    # Check for newly completed chunks for streaming
+                    # Check for newly completed chunks for streaming (including already-completed chunks on first iteration)
                     completed_chunks = [chunk for chunk in chunks if chunk.audio_file is not None]
-                    for chunk in completed_chunks:
-                        if chunk.index > last_completed_chunk:
+                    for chunk in sorted(completed_chunks, key=lambda c: c.index):
+                        if chunk.index not in sent_chunk_indexes:
                             # Send chunk_ready event for progressive playback
                             chunk_event = LongTextSSEEvent(
                                 job_id=job_id,
@@ -656,6 +657,7 @@ async def job_progress_sse(job_id: str):
                                 "data": json.dumps(chunk_event.data)
                             }
                             
+                            sent_chunk_indexes.add(chunk.index)
                             last_completed_chunk = chunk.index
 
                     # Check if we should send an update
