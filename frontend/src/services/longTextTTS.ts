@@ -213,6 +213,21 @@ export const createLongTextTTSService = (baseUrl: string, sessionId?: string) =>
         }
       });
 
+      eventSource.addEventListener('chunk_ready', (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          onEvent({
+            job_id: jobId,
+            timestamp: new Date().toISOString(),
+            event_type: 'chunk_ready',
+            data
+          });
+        } catch (error) {
+          console.error('Failed to parse chunk_ready event:', error);
+          onError?.(new Error('Failed to parse chunk_ready event'));
+        }
+      });
+
       eventSource.addEventListener('completed', (event) => {
         try {
           hasReceivedCompletionEvent = true;
