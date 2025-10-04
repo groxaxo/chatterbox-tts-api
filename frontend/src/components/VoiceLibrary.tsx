@@ -43,6 +43,11 @@ export default function VoiceLibrary({
   const [editingVoice, setEditingVoice] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
   const [showUploadModal, setShowUploadModal] = useState(false);
+
+  // Verbose logging for debugging modal state
+  useEffect(() => {
+    console.log('[VoiceLibrary] showUploadModal state changed:', showUploadModal);
+  }, [showUploadModal]);
   const [addingAliasFor, setAddingAliasFor] = useState<string | null>(null);
   const [newAlias, setNewAlias] = useState('');
   const currentAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -58,9 +63,13 @@ export default function VoiceLibrary({
   }, []);
 
   const handleUploadVoice = async (file: File, customName?: string, language?: string) => {
+    console.log('[VoiceLibrary] handleUploadVoice called with:', { file: file.name, customName, language });
     try {
+      console.log('[VoiceLibrary] Calling onAddVoice...');
       await onAddVoice(file, customName, language);
+      console.log('[VoiceLibrary] onAddVoice completed successfully');
     } catch (error) {
+      console.error('[VoiceLibrary] handleUploadVoice error:', error);
       throw error; // Re-throw to let the modal handle the error display
     }
   };
@@ -240,7 +249,13 @@ export default function VoiceLibrary({
                 </Button>
               )}
               <Button
-                onClick={() => setShowUploadModal(true)}
+                onClick={() => {
+                  console.log('[VoiceLibrary] Add Voice button clicked');
+                  console.log('[VoiceLibrary] Current showUploadModal state:', showUploadModal);
+                  console.log('[VoiceLibrary] Setting showUploadModal to true');
+                  setShowUploadModal(true);
+                  console.log('[VoiceLibrary] setShowUploadModal(true) called');
+                }}
                 className="bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2 rounded-lg text-sm flex items-center gap-2 font-semibold duration-300"
               >
                 <Upload className="w-4 h-4" />
@@ -471,9 +486,13 @@ export default function VoiceLibrary({
       </Card>
 
       {/* Voice Upload Modal */}
+      {console.log('[VoiceLibrary] Rendering VoiceUploadModal with open=', showUploadModal)}
       <VoiceUploadModal
         open={showUploadModal}
-        onOpenChange={setShowUploadModal}
+        onOpenChange={(open) => {
+          console.log('[VoiceLibrary] VoiceUploadModal onOpenChange called with:', open);
+          setShowUploadModal(open);
+        }}
         onUpload={handleUploadVoice}
       />
     </>

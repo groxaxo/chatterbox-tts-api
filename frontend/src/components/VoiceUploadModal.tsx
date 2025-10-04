@@ -25,14 +25,29 @@ export default function VoiceUploadModal({ open, onOpenChange, onUpload }: Voice
 
   // Log when modal opens for debugging
   React.useEffect(() => {
+    console.log('[VoiceUploadModal] open prop changed to:', open);
     if (open) {
-      console.log('VoiceUploadModal opened');
+      console.log('[VoiceUploadModal] Modal is OPENING');
+    } else {
+      console.log('[VoiceUploadModal] Modal is CLOSED');
     }
   }, [open]);
 
-  const handleClose = useCallback(() => {
-    if (uploadState === 'uploading') return; // Prevent closing during upload
+  // Log component render
+  console.log('[VoiceUploadModal] Component rendering with props:', {
+    open,
+    hasOnOpenChange: !!onOpenChange,
+    hasOnUpload: !!onUpload
+  });
 
+  const handleClose = useCallback(() => {
+    console.log('[VoiceUploadModal] handleClose called, uploadState:', uploadState);
+    if (uploadState === 'uploading') {
+      console.log('[VoiceUploadModal] Cannot close during upload');
+      return; // Prevent closing during upload
+    }
+
+    console.log('[VoiceUploadModal] Resetting all state and closing modal');
     setSelectedFile(null);
     setCustomName('');
     setSelectedLanguage(DEFAULT_LANGUAGE);
@@ -40,6 +55,7 @@ export default function VoiceUploadModal({ open, onOpenChange, onUpload }: Voice
     setIsDragOver(false);
     setErrorMessage('');
     onOpenChange(false);
+    console.log('[VoiceUploadModal] onOpenChange(false) called');
   }, [uploadState, onOpenChange]);
 
   const handleFileSelect = useCallback((file: File) => {
@@ -209,9 +225,15 @@ export default function VoiceUploadModal({ open, onOpenChange, onUpload }: Voice
     );
   };
 
+  console.log('[VoiceUploadModal] About to return JSX, open=', open);
+
   return (
     <>
-      <Modal open={open} onOpenChange={handleClose}>
+      {console.log('[VoiceUploadModal] Rendering Modal component with open=', open)}
+      <Modal open={open} onOpenChange={(newOpen) => {
+        console.log('[VoiceUploadModal] Modal onOpenChange callback, newOpen=', newOpen);
+        handleClose();
+      }}>
         <ModalContent className="">
           <ModalHeader>
             <ModalTitle>Add Voice to Library</ModalTitle>

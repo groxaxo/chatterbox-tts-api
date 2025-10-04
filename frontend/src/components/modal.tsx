@@ -74,11 +74,23 @@ interface ModalProps {
 
 // 2. Modify the main Modal component to manage state and provide context
 function Modal({ children, open, onOpenChange }: ModalProps) {
+  console.log('[Modal] Rendering with open=', open);
   const isMobile = useIsMobileSimple();
+  console.log('[Modal] isMobile=', isMobile);
   const Component = isMobile ? Drawer : Dialog;
+  console.log('[Modal] Using component:', isMobile ? 'Drawer' : 'Dialog');
+
+  React.useEffect(() => {
+    console.log('[Modal] open state changed to:', open);
+  }, [open]);
 
   return (
-    <Component open={open} onOpenChange={onOpenChange}>
+    <Component open={open} onOpenChange={(newOpen) => {
+      console.log('[Modal] Component onOpenChange called with:', newOpen);
+      if (onOpenChange) {
+        onOpenChange(newOpen);
+      }
+    }}>
       {/* Provide the isMobile value to all children */}
       <ModalContext.Provider value={{ isMobile }}>
         {children}
