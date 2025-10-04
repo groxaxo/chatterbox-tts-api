@@ -21,6 +21,9 @@ interface LongTextTTSState {
   isJobActive: boolean;
   error: string | null;
   audioUrl: string | null;
+  isStreaming: boolean;
+  streamingChunks: string[];  // Array of audio URLs for chunks
+  currentlyPlayingChunk: number;
 }
 
 export function useLongTextTTS({ apiBaseUrl, sessionId }: UseLongTextTTSProps) {
@@ -29,7 +32,10 @@ export function useLongTextTTS({ apiBaseUrl, sessionId }: UseLongTextTTSProps) {
     progress: null,
     isJobActive: false,
     error: null,
-    audioUrl: null
+    audioUrl: null,
+    isStreaming: false,
+    streamingChunks: [],
+    currentlyPlayingChunk: -1
   });
 
   // Track job IDs in localStorage for persistence across sessions
@@ -176,10 +182,19 @@ export function useLongTextTTS({ apiBaseUrl, sessionId }: UseLongTextTTSProps) {
 
           // Handle different event types
           switch (event.event_type) {
+            case 'chunk_ready':
+              // Progressive streaming: play chunk as it completes
+              console.log(`Chunk ${event.data.chunk_index} ready for streaming`);
+              newState.isStreaming = true;
+              // Download and play this chunk
+              playChunk(jobId, event.data.chunk_index, event.data.chunk_url);
+              break;
+
             case 'completed':
             case 'job_completed':
               console.log(`Long text job ${jobId} completed, setting isJobActive to false`);
               newState.isJobActive = false;
+              newState.isStreaming = false;
               // Remove job from tracking since it's completed
               removeJobId(jobId);
               // Trigger download of completed audio
@@ -190,6 +205,7 @@ export function useLongTextTTS({ apiBaseUrl, sessionId }: UseLongTextTTSProps) {
             case 'job_failed':
               console.log(`Long text job ${jobId} failed, setting isJobActive to false`);
               newState.isJobActive = false;
+              newState.isStreaming = false;
               newState.error = event.data.error || event.data.message || 'Job failed';
               // Remove job from tracking since it failed
               removeJobId(jobId);
@@ -197,10 +213,12 @@ export function useLongTextTTS({ apiBaseUrl, sessionId }: UseLongTextTTSProps) {
 
             case 'job_paused':
               // Job is paused but still active (can be resumed)
+              newState.isStreaming = false;
               break;
 
             case 'job_resumed':
               newState.error = null; // Clear any previous errors
+              newState.isStreaming = true;
               break;
 
             case 'progress':
@@ -222,6 +240,36 @@ export function useLongTextTTS({ apiBaseUrl, sessionId }: UseLongTextTTSProps) {
 
     sseCleanupRef.current = cleanup;
   }, [service]);
+
+  // Play individual chunk for progressive streaming
+  const playChunk = useCallback(async (jobId: string, chunkIndex: number, chunkUrl: string) => {
+    try {
+      console.log(`Downloading and playing chunk ${chunkIndex} from ${chunkUrl}`);
+      
+      // Fetch chunk audio
+      const response = await fetch(`${apiBaseUrl}${chunkUrl}`);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch chunk ${chunkIndex}`);
+      }
+      
+      const audioBlob = await response.blob();
+      const audioUrl = URL.createObjectURL(audioBlob);
+      
+      // Add to streaming chunks array
+      setState(prev => ({
+        ...prev,
+        streamingChunks: [...prev.streamingChunks, audioUrl],
+        currentlyPlayingChunk: chunkIndex
+      }));
+      
+      // Auto-play the chunk
+      const audio = new Audio(audioUrl);
+      audio.play().catch(err => console.error(`Failed to play chunk ${chunkIndex}:`, err));
+      
+    } catch (error) {
+      console.error(`Failed to play chunk ${chunkIndex}:`, error);
+    }
+  }, [apiBaseUrl]);
 
   // Download completed audio
   const downloadCompletedAudio = useCallback(async (jobId: string) => {

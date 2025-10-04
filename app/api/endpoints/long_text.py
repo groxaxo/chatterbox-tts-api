@@ -279,6 +279,95 @@ async def download_job_audio(job_id: str):
         )
 
 
+@router.get("/audio/speech/long/{job_id}/chunks/{chunk_index}")
+async def download_chunk_audio(job_id: str, chunk_index: int):
+    """
+    Download a specific audio chunk for progressive streaming playback.
+    This allows playing audio chunks as they complete without waiting for the entire job.
+    """
+    try:
+        job_manager = get_job_manager()
+
+        # Check if job exists
+        if not job_manager.job_exists(job_id):
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail={
+                    "error": {
+                        "message": f"Job {job_id} not found",
+                        "type": "not_found_error"
+                    }
+                }
+            )
+
+        # Load chunks data
+        chunks = job_manager._load_chunks_data(job_id)
+        
+        # Find the requested chunk
+        chunk = next((c for c in chunks if c.index == chunk_index), None)
+        
+        if not chunk:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail={
+                    "error": {
+                        "message": f"Chunk {chunk_index} not found for job {job_id}",
+                        "type": "not_found_error"
+                    }
+                }
+            )
+        
+        # Check if chunk audio is available
+        if not chunk.audio_file:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail={
+                    "error": {
+                        "message": f"Chunk {chunk_index} audio not yet generated",
+                        "type": "invalid_request_error"
+                    }
+                }
+            )
+        
+        # Construct file path
+        job_dir = Path(Config.LONG_TEXT_DATA_DIR) / job_id
+        chunk_file = job_dir / "chunks" / chunk.audio_file
+        
+        if not chunk_file.exists():
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail={
+                    "error": {
+                        "message": "Chunk audio file not found on disk",
+                        "type": "api_error"
+                    }
+                }
+            )
+        
+        # Determine media type (chunks are typically stored as WAV)
+        media_type = "audio/wav"
+        
+        # Return file response
+        return FileResponse(
+            path=str(chunk_file),
+            media_type=media_type,
+            filename=f"chunk_{chunk_index}.wav"
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={
+                "error": {
+                    "message": f"Failed to download chunk: {str(e)}",
+                    "type": "api_error"
+                }
+            }
+        )
+
+
 @router.put("/audio/speech/long/{job_id}/pause")
 async def pause_job(job_id: str):
     """
@@ -534,15 +623,40 @@ async def job_progress_sse(job_id: str):
             """Generate SSE events for job progress"""
             last_status = None
             last_progress = None
+            last_completed_chunk = -1
 
             while True:
                 try:
                     # Get current job status and progress
                     metadata = job_manager._load_job_metadata(job_id)
                     progress = job_manager.get_progress(job_id)
+                    chunks = job_manager._load_chunks_data(job_id)
 
                     if not metadata or not progress:
                         break
+
+                    # Check for newly completed chunks for streaming
+                    completed_chunks = [chunk for chunk in chunks if chunk.audio_file is not None]
+                    for chunk in completed_chunks:
+                        if chunk.index > last_completed_chunk:
+                            # Send chunk_ready event for progressive playback
+                            chunk_event = LongTextSSEEvent(
+                                job_id=job_id,
+                                event_type="chunk_ready",
+                                data={
+                                    "chunk_index": chunk.index,
+                                    "total_chunks": metadata.total_chunks,
+                                    "chunk_url": f"/audio/speech/long/{job_id}/chunks/{chunk.index}",
+                                    "text_preview": chunk.text[:50] + "..." if len(chunk.text) > 50 else chunk.text
+                                }
+                            )
+                            
+                            yield {
+                                "event": chunk_event.event_type,
+                                "data": json.dumps(chunk_event.data)
+                            }
+                            
+                            last_completed_chunk = chunk.index
 
                     # Check if we should send an update
                     send_update = (
