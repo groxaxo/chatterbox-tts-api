@@ -15,15 +15,15 @@ const isDockerFullstack = () => {
 
 // Default API endpoints based on environment
 const getDefaultApiBase = () => {
-  if (typeof window === 'undefined') return 'http://localhost:4123/v1';
+  if (typeof window === 'undefined') return 'http://localhost:4123';
 
   if (isDockerFullstack()) {
     // When running behind proxy, API calls go through the same origin
-    return `${window.location.protocol}//${window.location.host}/v1`;
+    return `${window.location.protocol}//${window.location.host}`;
   }
 
   // Local development or direct API access
-  return 'http://localhost:4123/v1';
+  return 'http://localhost:4123';
 };
 
 const STORAGE_KEY = 'chatterbox-api-endpoint';

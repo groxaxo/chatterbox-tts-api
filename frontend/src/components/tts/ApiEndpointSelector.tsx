@@ -71,7 +71,7 @@ export default function ApiEndpointSelector({ apiBaseUrl, onUrlChange }: ApiEndp
                 onChange={(e) => setTempUrl(e.target.value)}
                 onKeyDown={handleKeyPress}
                 className="text-xs"
-                placeholder="http://localhost:4123/v1"
+                placeholder="http://localhost:4123"
                 autoFocus
               />
               <button
