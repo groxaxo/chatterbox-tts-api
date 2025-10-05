@@ -626,8 +626,8 @@ export default function TTSPage() {
               {isGenerating ? (isStreaming ? 'Streaming...' : 'Generating...') : 'Generate Speech'}
             </Button>
 
-            {/* Audio Player - Only show for non-streaming audio or completed streaming */}
-            {currentAudioUrl && !isStreaming && (
+            {/* Audio Player - Show when audio is available (streaming, long text, or standard) */}
+            {currentAudioUrl && !isStreaming && !isJobActive && (
               <AudioPlayer audioUrl={currentAudioUrl} />
             )}
           </div>

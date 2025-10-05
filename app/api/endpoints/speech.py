@@ -411,21 +411,9 @@ async def generate_speech_streaming(
         else:
             print()
     
-    # Validate total text length
-    update_tts_status(request_id, TTSStatus.PROCESSING_TEXT, "Validating text length")
-    if len(text) > Config.MAX_TOTAL_LENGTH:
-        update_tts_status(request_id, TTSStatus.ERROR, 
-                        error_message=f"Input text too long. Maximum {Config.MAX_TOTAL_LENGTH} characters allowed.")
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail={
-                "error": {
-                    "message": f"Input text too long. Maximum {Config.MAX_TOTAL_LENGTH} characters allowed.",
-                    "type": "invalid_request_error"
-                }
-            }
-        )
-
+    # Note: Text length validation should be done BEFORE calling this function
+    # to avoid raising HTTPException after streaming has started
+    
     # WAV header info for streaming
     sample_rate = model.sr
     channels = 1
@@ -610,21 +598,9 @@ async def generate_speech_sse(
         else:
             print()
     
-    # Validate total text length
-    update_tts_status(request_id, TTSStatus.PROCESSING_TEXT, "Validating text length")
-    if len(text) > Config.MAX_TOTAL_LENGTH:
-        update_tts_status(request_id, TTSStatus.ERROR, 
-                        error_message=f"Input text too long. Maximum {Config.MAX_TOTAL_LENGTH} characters allowed.")
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail={
-                "error": {
-                    "message": f"Input text too long. Maximum {Config.MAX_TOTAL_LENGTH} characters allowed.",
-                    "type": "invalid_request_error"
-                }
-            }
-        )
-
+    # Note: Text length validation should be done BEFORE calling this function
+    # to avoid raising HTTPException after streaming has started
+    
     # WAV header info for conversion
     sample_rate = model.sr
     channels = 1
@@ -794,6 +770,18 @@ async def generate_speech_sse(
 async def text_to_speech(request: TTSRequest):
     """Generate speech from text using Chatterbox TTS with voice selection support"""
     
+    # Validate text length BEFORE creating streaming response
+    if len(request.input) > Config.MAX_TOTAL_LENGTH:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={
+                "error": {
+                    "message": f"Input text too long. Maximum {Config.MAX_TOTAL_LENGTH} characters allowed.",
+                    "type": "invalid_request_error"
+                }
+            }
+        )
+    
     # Resolve voice name to file path and language
     voice_sample_path, language_id = resolve_voice_path_and_language(request.voice)
     
@@ -944,6 +932,18 @@ async def text_to_speech_with_upload(
             )
     
     try:
+        # Validate text length BEFORE creating streaming response
+        if len(input) > Config.MAX_TOTAL_LENGTH:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail={
+                    "error": {
+                        "message": f"Input text too long. Maximum {Config.MAX_TOTAL_LENGTH} characters allowed.",
+                        "type": "invalid_request_error"
+                    }
+                }
+            )
+        
         # Check if SSE streaming is requested
         if stream_format == "sse":
             # Create async generator that handles cleanup

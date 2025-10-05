@@ -272,6 +272,25 @@ export default function LongTextProgress({
                 </div>
               )}
             </div>
+
+            {/* Audio Player for completed jobs */}
+            {job.job.status === 'completed' && audioUrl && (
+              <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
+                  <Volume2 className="w-4 h-4" />
+                  Generated Audio
+                </h4>
+                <audio
+                  src={audioUrl}
+                  controls
+                  className="w-full dark:[&::-webkit-media-controls-panel]:bg-gray-700"
+                  preload="metadata"
+                />
+                <p className="text-xs text-muted-foreground mt-2">
+                  You can play the audio above or use the download button to save it.
+                </p>
+              </div>
+            )}
           </>
         )}
       </CardContent>

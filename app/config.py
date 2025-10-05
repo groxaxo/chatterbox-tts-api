@@ -24,7 +24,7 @@ class Config:
     
     # Text processing
     MAX_CHUNK_LENGTH = int(os.getenv('MAX_CHUNK_LENGTH', 280))
-    MAX_TOTAL_LENGTH = int(os.getenv('MAX_TOTAL_LENGTH', 3000))
+    MAX_TOTAL_LENGTH = int(os.getenv('MAX_TOTAL_LENGTH', 999999))  # Bypass long text - use streaming for all
     
     # Voice and model settings
     VOICE_SAMPLE_PATH = os.getenv('VOICE_SAMPLE_PATH', './voice-sample.mp3')

@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field, validator
 class TTSRequest(BaseModel):
     """Text-to-speech request model"""
     
-    input: str = Field(..., description="The text to generate audio for", min_length=1, max_length=3000)
+    input: str = Field(..., description="The text to generate audio for", min_length=1, max_length=999999)
     voice: Optional[str] = Field("alloy", description="Voice to use (ignored - uses voice sample)")
     response_format: Optional[str] = Field("wav", description="Audio format (always returns WAV)")
     speed: Optional[float] = Field(1.0, description="Speed of speech (ignored)")
