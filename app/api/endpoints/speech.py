@@ -436,6 +436,10 @@ async def generate_speech_streaming(
         cfg_weight = cfg_weight if cfg_weight is not None else Config.CFG_WEIGHT
         temperature = temperature if temperature is not None else Config.TEMPERATURE
         
+        # Note: vLLM backend doesn't support per-request cfg_weight
+        if cfg_weight != Config.CFG_WEIGHT:
+            print(f"⚠️  Warning: cfg_weight parameter is not supported in vLLM backend (streaming)")
+        
         # Get optimized streaming settings
         streaming_settings = get_streaming_settings(
             streaming_chunk_size, streaming_strategy, streaming_quality
@@ -482,17 +486,22 @@ async def generate_speech_streaming(
             # Use torch.no_grad() to prevent gradient accumulation
             with torch.no_grad():
                 # Run TTS generation in executor to avoid blocking
-                audio_tensor = await loop.run_in_executor(
+                # vLLM backend uses prompts (list), returns list of audio tensors
+                audio_list = await loop.run_in_executor(
                     None,
                     lambda: model.generate(
-                        text=chunk,
+                        prompts=[chunk],
                         audio_prompt_path=voice_sample_path,
                         exaggeration=exaggeration,
-                        cfg_weight=cfg_weight,
                         temperature=temperature,
-                        **({'language_id': language_id} if is_multilingual() else {})
+                        language_id=language_id,
+                        diffusion_steps=Config.VLLM_DIFFUSION_STEPS
                     )
                 )
+                # vLLM returns a list of tensors, take the first one
+                audio_tensor = audio_list[0] if audio_list else None
+                if audio_tensor is None:
+                    raise RuntimeError("Model returned empty audio")
                 
                 # Ensure tensor is on CPU for streaming
                 if hasattr(audio_tensor, 'cpu'):
@@ -624,6 +633,10 @@ async def generate_speech_sse(
         cfg_weight = cfg_weight if cfg_weight is not None else Config.CFG_WEIGHT
         temperature = temperature if temperature is not None else Config.TEMPERATURE
         
+        # Note: vLLM backend doesn't support per-request cfg_weight
+        if cfg_weight != Config.CFG_WEIGHT:
+            print(f"⚠️  Warning: cfg_weight parameter is not supported in vLLM backend (SSE)")
+        
         # Get optimized streaming settings
         streaming_settings = get_streaming_settings(
             streaming_chunk_size, streaming_strategy, streaming_quality
@@ -673,17 +686,22 @@ async def generate_speech_sse(
             # Use torch.no_grad() to prevent gradient accumulation
             with torch.no_grad():
                 # Run TTS generation in executor to avoid blocking
-                audio_tensor = await loop.run_in_executor(
+                # vLLM backend uses prompts (list), returns list of audio tensors
+                audio_list = await loop.run_in_executor(
                     None,
                     lambda: model.generate(
-                        text=chunk,
+                        prompts=[chunk],
                         audio_prompt_path=voice_sample_path,
                         exaggeration=exaggeration,
-                        cfg_weight=cfg_weight,
                         temperature=temperature,
-                        **({'language_id': language_id} if is_multilingual() else {})
+                        language_id=language_id,
+                        diffusion_steps=Config.VLLM_DIFFUSION_STEPS
                     )
                 )
+                # vLLM returns a list of tensors, take the first one
+                audio_tensor = audio_list[0] if audio_list else None
+                if audio_tensor is None:
+                    raise RuntimeError("Model returned empty audio")
                 
                 # Ensure tensor is on CPU for processing
                 if hasattr(audio_tensor, 'cpu'):
