@@ -1,12 +1,12 @@
-# Chatterbox TTS Core Package with multilingual support (23 languages)
-# Official ResembleAI version v0.1.4 - supports all 23 languages including Chinese
-chatterbox-tts==0.1.4
+# Chatterbox TTS on vLLM - High-performance backend with ~4x speedup
+# Uses vLLM for efficient inference and batching
+chatterbox-vllm>=0.2.1
 
-# Required for Chatterbox TTS watermarker functionality
-resemble-perth
+# vLLM inference engine
+vllm>=0.10.0
 
-# PyTorch with CPU support (ensure CPU compatibility)
-torch>=2.0.0,<2.7.0
+# Audio processing
+librosa>=0.10.0
 torchaudio>=2.0.0,<2.7.0
 
 # FastAPI and ASGI server

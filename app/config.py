@@ -31,9 +31,16 @@ class Config:
     DEVICE_OVERRIDE = os.getenv('DEVICE', 'auto')
     MODEL_CACHE_DIR = os.getenv('MODEL_CACHE_DIR', './models')
     
-    # Model optimization settings
+    # Model optimization settings (deprecated with vLLM backend)
     USE_INT8_QUANTIZATION = os.getenv('USE_INT8_QUANTIZATION', 'false').lower() == 'true'
     MODEL_DTYPE = os.getenv('MODEL_DTYPE', 'auto')  # auto, float32, float16, bfloat16
+    
+    # vLLM-specific settings
+    VLLM_MAX_BATCH_SIZE = int(os.getenv('VLLM_MAX_BATCH_SIZE', 10))
+    VLLM_MAX_MODEL_LEN = int(os.getenv('VLLM_MAX_MODEL_LEN', 1000))
+    VLLM_COMPILE = os.getenv('VLLM_COMPILE', 'false').lower() == 'true'
+    VLLM_S3GEN_FP16 = os.getenv('VLLM_S3GEN_FP16', 'false').lower() == 'true'
+    VLLM_DIFFUSION_STEPS = int(os.getenv('VLLM_DIFFUSION_STEPS', 10))
     
     # Voice library settings
     VOICE_LIBRARY_DIR = os.getenv('VOICE_LIBRARY_DIR', './voices')
@@ -66,10 +73,17 @@ class Config:
         """Validate configuration values"""
         if not (0.25 <= cls.EXAGGERATION <= 2.0):
             raise ValueError(f"EXAGGERATION must be between 0.25 and 2.0, got {cls.EXAGGERATION}")
+        # CFG_WEIGHT is not used in vLLM backend (CFG is configured via environment variable)
         if not (0.0 <= cls.CFG_WEIGHT <= 1.0):
             raise ValueError(f"CFG_WEIGHT must be between 0.0 and 1.0, got {cls.CFG_WEIGHT}")
         if not (0.05 <= cls.TEMPERATURE <= 5.0):
             raise ValueError(f"TEMPERATURE must be between 0.05 and 5.0, got {cls.TEMPERATURE}")
+        if cls.VLLM_MAX_BATCH_SIZE <= 0:
+            raise ValueError(f"VLLM_MAX_BATCH_SIZE must be positive, got {cls.VLLM_MAX_BATCH_SIZE}")
+        if cls.VLLM_MAX_MODEL_LEN <= 0:
+            raise ValueError(f"VLLM_MAX_MODEL_LEN must be positive, got {cls.VLLM_MAX_MODEL_LEN}")
+        if cls.VLLM_DIFFUSION_STEPS <= 0:
+            raise ValueError(f"VLLM_DIFFUSION_STEPS must be positive, got {cls.VLLM_DIFFUSION_STEPS}")
         if cls.MAX_CHUNK_LENGTH <= 0:
             raise ValueError(f"MAX_CHUNK_LENGTH must be positive, got {cls.MAX_CHUNK_LENGTH}")
         if cls.MAX_TOTAL_LENGTH <= 0:
